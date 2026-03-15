@@ -1,0 +1,786 @@
+From 0bd1ba0fa416e2b2f287f60587114d6147357d89 Mon Sep 17 00:00:00 2001
+From: Maverick353 <zhang13245@foxmail.com>
+Date: Sun, 15 Mar 2026 23:00:35 +0800
+Subject: [PATCH] book_manage
+
+---
+ book_manage.c   | 182 ++++++++++++++++++++++++++++++++++++++++++++
+ book_manage.exe | Bin 0 -> 60251 bytes
+ homework        | 195 ------------------------------------------------
+ 3 files changed, 182 insertions(+), 195 deletions(-)
+ create mode 100644 book_manage.c
+ create mode 100644 book_manage.exe
+ delete mode 100644 homework
+
+diff --git a/book_manage.c b/book_manage.c
+new file mode 100644
+index 0000000..35757ae
+--- /dev/null
++++ b/book_manage.c
+@@ -0,0 +1,182 @@
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++
++// 定义图书信息结构体
++typedef struct {
++    char bno[20];       // 书号（原“查尔·布诺”）
++    char title[50];     // 书名（原“角色标题”）
++    char sno[20];       // 借阅人学号（原“查尔·斯诺”）
++    int bStatus;        // 借阅状态，0表示未借出，1表示借出（原“智力bStatus”）
++} Book;
++
++// 定义图书信息的结点结构
++typedef struct Node {
++    Book book;          // 图书数据（原“书籍”）
++    struct Node *next;  // 指向下一个结点的指针（原“接下来是struct节点*”）
++} ListNode, *LinkList;
++
++// 初始化图书信息表
++LinkList InitList() {
++    LinkList L;
++    L = (ListNode*)malloc(sizeof(ListNode)); // 为头结点分配内存空间
++    if (L == NULL) {
++        printf("分配空间失败，创建单链表不成功！\n");
++        return NULL;
++    }
++    L->next = NULL;
++    return L;
++}
++
++// 创建图书信息表
++LinkList CreateListL() {
++    Book book;
++    LinkList L = InitList();
++    ListNode *s, *r;
++    char inputBno[20];         // 用于临时存储输入的图书编号
++    int continueInput = 1;     // 控制输入的标志，为0时结束输入
++    r = L;                     // r初值指向头结点
++    while (continueInput) {
++        printf("请输入书号和书名（输入书号为NULL结束）：");
++        scanf("%19s %49s", inputBno, book.title);
++        if (strcmp(inputBno, "NULL") == 0) {
++            continueInput = 0;  // 当输入的书号为NULL时，修改结束标志
++        } else {
++            strcpy(book.bno, inputBno); // 将临时编号复制到book.bno中
++            strcpy(book.sno, "NULL");   // 默认未借出，借阅人学号为NULL
++            book.bStatus = 0;           // 默认借阅状态为0（未借出）
++            s = (ListNode*)malloc(sizeof(ListNode));
++            if (s == NULL) {
++                printf("分配空间失败！\n");
++                exit(1); // 若分配内存空间失败，则退出程序
++            }
++            s->book = book;    // 为新结点添加数据
++            r->next = s;       // 将新结点插入到链表末尾
++            r = s;
++        }
++    }
++    r->next = NULL;
++    return L;
++}
++
++// 输出图书信息表
++void PrintList(LinkList L) {
++    ListNode *p;
++    p = L->next;
++    while (p != NULL) {
++        printf("%s\t%-17s\t%s\t%d\n", p->book.bno,
++               p->book.title, p->book.sno, p->book.bStatus);
++        p = p->next;
++    }
++}
++
++// 查找图书（按书名查找，返回指向目标图书结点的指针）
++ListNode* LocateListp(LinkList L, const char* bname) {
++    ListNode *p = L->next; // 从链表的第一个实际数据元素开始查找
++    while (p != NULL) {
++        if (strcmp(p->book.title, bname) == 0)
++            return p; // 若找到匹配的书名，则返回该结点的指针
++        p = p->next;
++    }
++    return NULL; // 查找下一个结点
++}
++
++// 借阅图书
++void BorrowBook(LinkList L) {
++    char sno[20];
++    char title[50];
++    ListNode *foundNode = NULL;
++    printf("欢迎借阅图书！ 请输入您的学号：");
++    scanf("%19s", sno);
++    while (1) {
++        printf("请输入要借阅的书名：");
++        scanf("%49s", title);
++        foundNode = LocateListp(L, title);
++        if (foundNode == NULL)
++            printf("图书不存在，请重新输入书名！\n");
++        else if (foundNode->book.bStatus == 1)
++            printf("图书已被借出，请重新输入书名！\n");
++        else {
++            // 图书可借阅，记录借阅学生的学号并修改借阅状态
++            strcpy(foundNode->book.sno, sno);
++            foundNode->book.bStatus = 1;
++            printf("借阅成功！\n");
++            break;
++        }
++    }
++}
++
++// 归还图书
++void ReturnBook(LinkList L) {
++    char sno[20];
++    char title[50];
++    ListNode *foundNode = NULL;
++    printf("开始归还图书，请输入您的学号：");
++    scanf("%19s", sno);
++    while (1) {
++        printf("请输入要归还的书名：");
++        scanf("%49s", title);
++        foundNode = LocateListp(L, title);
++        if (foundNode == NULL)
++            printf("图书不存在，请重新输入书名！\n");
++        else if (strcmp(foundNode->book.sno, sno) != 0 || foundNode->book.bStatus != 1)
++            printf("您没有借阅这本书，请检查学号和书名后重新输入！\n");
++        else {
++            // 图书已被该学生借阅，进行归还操作
++            strcpy(foundNode->book.sno, "NULL");
++            foundNode->book.bStatus = 0; // 将借阅人学号设置为NULL，修改借阅状态为未借出
++            printf("图书归还成功！\n");
++            break;
++        }
++        printf("请重新输入您的学号：");
++        scanf("%19s", sno);
++    }
++}
++
++int main() {
++    LinkList A;
++    ListNode *p;
++    int ilocate = 1;
++    char bname[50];
++    printf("请依次输入图书的书号和书名(以书号为NULL结束输入):\n");
++    // 新建图书信息表
++    A = CreateListL();
++    printf("\n\t\t\t\t图书信息表\n");
++    printf("--------------------------------------------------------\n");
++    printf("书号\t\t书名\t\t借阅人学号\t借阅状态\n");
++    printf("--------------------------------------------------------\n");
++    PrintList(A); // 输出图书信息表
++    printf("--------------------------------------------------------\n");
++    // 查找图书
++    printf("\n请输入需要查找的图书名称：");
++    do {
++        scanf("%49s", bname);
++        p = LocateListp(A, bname); // 按书名查找图书
++        if (p != NULL) {
++            printf("您查找的图书信息如下：\n");
++            printf("%s\t%s\t\t%s\t%d\n", p->book.bno,
++                   p->book.title, p->book.sno, p->book.bStatus);
++            ilocate = 0;
++        } else {
++            printf("您查找的图书不存在！请重新输入正确的书名：");
++        }
++    } while (ilocate);
++    // 借阅和归还图书
++    printf("\n");
++    BorrowBook(A);
++    printf("\n\t\t\t\t\t图书信息表\n");
++    printf("--------------------------------------------------------\n");
++    printf("书号\t\t\t书名\t\t\t借阅人学号\t借阅状态\n");
++    printf("--------------------------------------------------------\n");
++    PrintList(A); // 输出图书信息表
++    printf("--------------------------------------------------------\n");
++    printf("\n");
++    ReturnBook(A);
++    printf("\n\t\t\t\t\t图书信息表\n");
++    printf("--------------------------------------------------------\n");
++    printf("书号\t\t\t书名\t\t\t借阅人学号\t借阅状态\n");
++    printf("--------------------------------------------------------\n");
++    PrintList(A); // 输出图书信息表
++    printf("--------------------------------------------------------\n");
++    return 0;
++}
+\ No newline at end of file
+diff --git a/book_manage.exe b/book_manage.exe
+new file mode 100644
+index 0000000000000000000000000000000000000000..216fc7ef6e940f027116cf664cd0b86cedf34e7c
+GIT binary patch
+literal 60251
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/homework b/homework
+deleted file mode 100644
+index 3513252..0000000
+--- a/homework
++++ /dev/null
+@@ -1,195 +0,0 @@
+-#include < stdio.h>
+-#include < stdlib.h.>
+-#include < string.h>
+- //定义图书信息结构体
+- typedef struct
+- {
+-     查尔·布诺[20];         //书号
+-     角色标题[50];        //书名
+-     查尔·斯诺[20];          //借阅人学号
+-     智力bStatus;           //借阅状态，0表示未借出，1表示借出
+- } 书籍;
+- //定义图书信息的结点结构
+- typedef struct 节点
+- {
+-     书籍;
+-     接下来是struct节点*;
+- } ListNode， * LinkList;
+- //初始化图书信息表
+- LinkList 初始列表（InitList）
+- {
+-     链接列表 L;
+-     L = （ListNode*）malloc（sizeof（ListNode））;//为头结点分配内存空间
+-     如果 （L == NULL）
+-     {
+-         printf（“分配空间失败，创建单链表不成功！”）;
+-         返回NULL;
+-     }
+-     L->next = NULL;
+-     返回L;
+- }
+- //创建图书信息表
+- 链接列表 CreatListL（）
+- {
+-     书籍;
+-     LinkList L = InitList（）;
+-     ListNode *s， *r;
+-     字符输入Bno[20];         //用于临时存储输入的图书编号
+-     整数 继续输入 = 1;     //控制输入的标志，为0时结束输入
+-     r = L;                     r初值指向头结点
+-     虽然（继续输入）
+-     {
+-         scanf（“%19s %49s”，inputBno，book.title）;
+-         如果 （strcmp（inputBno， “NULL”）== 0）
+-             continueInput = 0; 当输入的书号为NULL时，修改结束标志
+-         否则
+-         {
+-             strcpy（book.bno， inputBno）;将临时编号复制到book.bno中
+-             strcpy（book.sno，“NULL”）;  默认未借出，借阅人学号为NULL
+-             book.bStatus = 0;         //默认借阅状态为0（未借出）
+-             s = （ListNode*）malloc（sizeof（ListNode））;
+-             如果 （s == NULL）
+-             {
+-                 printf（“分配空间失败！”）;
+-                 出口（1）;				//若分配内存空间失败，则退出程序
+-             }
+-             s->book = 书籍;			//为新结点添加数据
+-             r->next = s;				//将新结点插入到链表末尾
+-             r = s;
+-         }
+-	 }
+-         r->next = NULL;
+-         返回L;
+- }
+- 
+-//输出图书信息表
+- void PrintList（LinkList L）
+- {
+-     ListNode *p;
+-     p = L-下一个>;
+-     而 （p ！= NULL）
+-     {
+-         printf（“%s\t%-17s\t%s\t%d\n”， p->book.bno，
+-                p->book.title，p->book.sno，p->book。bStatus);
+-         p = p->next;
+-     }
+- }
+- //查找图书（按书名查找，返回指向目标图书结点的指针）
+- ListNode* LocateListp(LinkList L, const char* bname)
+- {
+-     ListNode *p = L->next;      //从链表的第一个实际数据元素开始查找
+-     while (p != NULL)
+-     {
+-         if (strcmp(p->book.title, bname) == 0)
+-             return p;           //若找到匹配的书名，则返回该结点的指针
+-         p = p->next;
+-     }
+-     return NULL;                //查找下一个结点
+- }
+- //借阅图书
+- void BorrowBook(LinkList L)
+- {
+-     char sno[20];
+-     char title[50];
+-     ListNode *foundNode = NULL;
+-     printf("欢迎借阅图书！ 请输入您的学号：");
+-     scanf("%19s", sno);
+-     while (1)
+-     {
+-         printf("请输入要借阅的书名：");
+-         scanf("%49s", title);
+-         foundNode = LocateListp(L, title);
+-         if (foundNode == NULL)
+-             printf("图书不存在，请重新输入书名！ \n");
+-         else if (foundNode->book.bStatus == 1)
+-             printf("图书已被借出，请重新输入书名！ \n");
+-         else
+-         {
+-             //图书可借阅，记录借阅学生的学号并修改借阅状态
+-             strcpy(foundNode->book.sno, sno);
+-             foundNode->book.bStatus = 1;
+-             printf("借阅成功！ \n");
+-             break;
+-         }
+-     }
+- }
+- //归还图书
+- void ReturnBook(LinkList L)
+- {
+-     char sno[20];
+-     char title[50];
+-     ListNode *foundNode = NULL;
+-     printf("开始归还图书，请输入您的学号：");
+-     scanf("%19s", sno);
+-     while (1)
+-     {
+-         printf("请输入要归还的书名：");
+-         scanf("%49s", title);
+-         foundNode = LocateListp(L, title);
+-         if (foundNode == NULL)
+-             printf("图书不存在，请重新输入书名！ \n");
+-         else if (strcmp(foundNode->book.sno, sno) != 0 || foundNode->book.bStatus != 1)
+-             printf("您没有借阅这本书，请检查学号和书名后重新输入！ \n");
+-         else
+-         {
+-             //图书已被该学生借阅，进行归还操作
+-             strcpy(foundNode->book.sno, "NULL");
+-             foundNode->book.bStatus = 0;  //将借阅人学号设置为NULL，修改借阅状态为未借出
+-             printf("图书归还成功！ \n");
+-             break;
+-         }
+-         printf("请重新输入您的学号：");
+-         scanf("%19s", sno);
+-     }
+- }
+- int main()
+- {
+-     LinkList A;
+-     ListNode *p;
+-     int ilocate = 1;
+-     char bname[20];
+-     printf("请依次输入图书的书号和书名(以书号和书名为NULL结束输入):\n");
+-     //新建图书信息表
+-     A = CreatListL();
+-     printf("\n\t\t\t\t图书信息表\n");
+-     printf("--------------------------------------------------------\n");
+-     printf("书号\t\t\t书名\t\t借阅人学号\t借阅状态\n");
+-     printf("--------------------------------------------------------\n");
+-     PrintList(A);                //输出图书信息表
+-     printf("--------------------------------------------------------\n");
+-     //查找图书
+-     printf("\n");
+-     printf("请输入需要查找的图书名称：");
+-     do
+-     {
+-         scanf("%19s", bname);
+-         p = LocateListp(A, bname);   //按书名查找图书
+-         if (p != 无）
+-         {
+-             printf（“您查找的图书信息如下：\n”）;
+-             printf（“%s\t%s\t\t%s\t%d\n”，p->book.bno，
+-                    p->book.title，p->book.sno，p->book.bStatus）;
+-             ilocate = 0;
+-         }
+-         否则
+-             printf（“您查找的图书不存在！请重新输入正确的书名：”）;
+-     } 而（定位）;
+-     //借阅和归还图书
+-     printf（“\n”）;
+-     借书（A）;
+-     printf（“\n\t\t\t\t\t图书信息表\n”）;
+-     printf（“--------------------------------------------------------\n”）;
+-     printf（“书号\t\t\t书名\t\t\t借阅人学号\t借阅状态\n”）;
+-     printf（“--------------------------------------------------------\n”）;
+-     PrintList（A）;               //输出图书信息表
+-     printf（“--------------------------------------------------------\n”）;
+-     printf（“\n”）;
+-     归还册（A）;
+-     printf（“\n\t\t\t\t\t图书信息表\n”）;
+-     printf（“--------------------------------------------------------\n”）;
+-     printf（“书号\t\t\t书名\t\t\t借阅人学号\t借阅状态\n”）;
+-     printf（“--------------------------------------------------------\n”）;
+-     PrintList（A）;               //输出图书信息表
+-     printf（“--------------------------------------------------------\n”）;
+-	 返回0;
+- }
+\ No newline at end of file
+-- 
+2.53.0.windows.1
+
